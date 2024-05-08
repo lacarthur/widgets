@@ -8,7 +8,7 @@ use iced_layershell::{
     Application,
 };
 
-use widgets::hyprland::ui::{WorkspaceDisplay, WorkspaceDisplayMessage};
+use widgets::hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}};
 
 use log::error;
 
@@ -52,7 +52,14 @@ impl Application for MyWidgets {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            ApplicationMessage::WorkspaceMessage(msg) => self.workspace_display.as_mut().map(|display| display.update(msg)),
+            ApplicationMessage::WorkspaceMessage(WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Error)) => {
+                self.workspace_display = None;
+            }
+            ApplicationMessage::WorkspaceMessage(msg) => {
+                if let Some(display) = self.workspace_display.as_mut() {
+                    display.update(msg);
+                }
+            }
         };
         Command::none()
     }
