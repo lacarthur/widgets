@@ -1,5 +1,5 @@
 use iced::{
-    executor, widget::text, Command, Element, Subscription, Theme
+    executor, widget::{row, text}, Command, Element, Subscription, Theme
 };
 
 use iced_layershell::{
@@ -8,18 +8,20 @@ use iced_layershell::{
     Application,
 };
 
-use widgets::hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}};
+use widgets::{clock::{Clock, ClockMessage}, hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}}};
 
 use log::error;
 
 #[derive(Debug, Clone)]
 enum ApplicationMessage {
     WorkspaceMessage(WorkspaceDisplayMessage),
+    ClockMessage(ClockMessage),
 }
 
 /// the main app, that represents all of the widgets
 struct MyWidgets {
     workspace_display: Option<WorkspaceDisplay>,
+    clock: Clock,
 }
 
 impl Application for MyWidgets {
@@ -41,6 +43,7 @@ impl Application for MyWidgets {
         (
             Self {
                 workspace_display,
+                clock: Clock::default(),
             },
             Command::none(),
         )
@@ -60,24 +63,36 @@ impl Application for MyWidgets {
                     display.update(msg);
                 }
             }
+            ApplicationMessage::ClockMessage(msg) => {
+                self.clock.update(msg);
+            }
         };
         Command::none()
     }
 
     fn view(&self) -> Element<Self::Message> {
-        if let Some(workspace_display) = &self.workspace_display {
+        let workspace = if let Some(workspace_display) = &self.workspace_display {
             workspace_display.view().map(ApplicationMessage::WorkspaceMessage)
         } else {
             text("Workspaces aren't working. Check the logs.").into()
-        }
+        };
+
+        let clock = self.clock.view().map(ApplicationMessage::ClockMessage);
+
+        row!(workspace, clock).into()
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
-        if let Some(workspace_display) = &self.workspace_display {
+        let workspace_subscription = if let Some(workspace_display) = &self.workspace_display {
             workspace_display.subscription().map(ApplicationMessage::WorkspaceMessage)
         } else {
             Subscription::none()
-        }
+        };
+
+        let clock_subscription = self.clock.subscription().map(ApplicationMessage::ClockMessage);
+
+        Subscription::batch([workspace_subscription, clock_subscription])
+
     }
 }
 
