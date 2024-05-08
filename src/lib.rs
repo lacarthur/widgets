@@ -1,1 +1,1 @@
-pub mod hyprland_workspaces;
+pub mod hyprland;
