@@ -126,7 +126,7 @@ impl WorkspaceDisplay {
             })
             .collect::<Vec<Element<_>>>();
 
-        Row::from_vec(buttons).into()
+        Row::with_children(buttons).into()
     }
     
     pub fn subscription(&self) -> iced::Subscription<WorkspaceDisplayMessage> {
@@ -145,8 +145,7 @@ impl button::StyleSheet for ActiveWorkspaceButtonStyle {
             shadow_offset: Default::default(),
             background: Some(iced::Background::Color(Color::new(1.0, 1.0, 0.0, 1.0))),
             text_color: Color::WHITE,
-            border: Default::default(),
-            shadow: Default::default(),
+            ..Default::default()
         }
     }
 }
@@ -159,8 +158,7 @@ impl button::StyleSheet for InactiveWorkspaceButtonStyle {
             shadow_offset: Default::default(),
             background: Some(iced::Background::Color(Color::new(0.0, 1.0, 1.0, 1.0))),
             text_color: Color::WHITE,
-            border: Default::default(),
-            shadow: Default::default(),
+            ..Default::default()
         }
     }
 }

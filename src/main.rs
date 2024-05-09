@@ -1,11 +1,5 @@
 use iced::{
-    executor, widget::{row, text}, Command, Element, Subscription, Theme
-};
-
-use iced_layershell::{
-    reexport::Anchor,
-    settings::{LayerShellSettings, Settings},
-    Application,
+    executor, wayland::layer_surface::Anchor, widget::{row, text}, Application, Command, Element, Settings, Subscription, Theme
 };
 
 use widgets::{battery_display::{BatteryDisplay, BatteryMessage}, clock::{Clock, ClockMessage}, hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}}};
@@ -52,10 +46,6 @@ impl Application for MyWidgets {
         )
     }
 
-    fn namespace(&self) -> String {
-        String::from("MyWidgets")
-    }
-
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             ApplicationMessage::Workspace(WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Error)) => {
@@ -79,7 +69,7 @@ impl Application for MyWidgets {
         Command::none()
     }
 
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self, _id: iced::window::Id) -> Element<Self::Message> {
         let workspace = if let Some(workspace_display) = &self.workspace_display {
             workspace_display.view().map(ApplicationMessage::Workspace)
         } else {
@@ -123,20 +113,26 @@ impl Application for MyWidgets {
         ])
 
     }
+
+    fn title(&self, _id: iced::window::Id) -> String {
+        String::from("Widgets")
+    }
 }
 
 
-fn main() -> Result<(), iced_layershell::Error> {
+fn main() -> Result<(), iced::Error> {
     env_logger::init();
 
     MyWidgets::run(Settings {
-        layer_settings: LayerShellSettings {
-            size: Some((1356, 30)),
-            exclusize_zone: 30,
-            anchor: Anchor::Top | Anchor::Right | Anchor::Left,
-            ..Default::default()
-        },
-        default_text_size: iced::Pixels(15.0),
+        initial_surface: iced::wayland::InitialSurface::LayerSurface(
+            iced::wayland::actions::layer_surface::SctkLayerSurfaceSettings {
+                layer: iced::wayland::layer_surface::Layer::Overlay,
+                anchor: Anchor::TOP,
+                size: Some((Some(1356), Some(30))),
+                exclusive_zone: 30,
+                ..Default::default()
+            }
+        ),
         ..Default::default()
     })
 }
