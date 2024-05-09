@@ -8,19 +8,21 @@ use iced_layershell::{
     Application,
 };
 
-use widgets::{clock::{Clock, ClockMessage}, hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}}};
+use widgets::{battery_display::{BatteryDisplay, BatteryMessage}, clock::{Clock, ClockMessage}, hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}}};
 
 use log::error;
 
 #[derive(Debug, Clone)]
 enum ApplicationMessage {
-    WorkspaceMessage(WorkspaceDisplayMessage),
-    ClockMessage(ClockMessage),
+    Workspace(WorkspaceDisplayMessage),
+    Clock(ClockMessage),
+    Battery(BatteryMessage),
 }
 
 /// the main app, that represents all of the widgets
 struct MyWidgets {
     workspace_display: Option<WorkspaceDisplay>,
+    battery_display: Option<BatteryDisplay>,
     clock: Clock,
 }
 
@@ -44,6 +46,7 @@ impl Application for MyWidgets {
             Self {
                 workspace_display,
                 clock: Clock::default(),
+                battery_display: BatteryDisplay::new(),
             },
             Command::none(),
         )
@@ -55,16 +58,22 @@ impl Application for MyWidgets {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            ApplicationMessage::WorkspaceMessage(WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Error)) => {
+            ApplicationMessage::Workspace(WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Error)) => {
                 self.workspace_display = None;
             }
-            ApplicationMessage::WorkspaceMessage(msg) => {
+            ApplicationMessage::Workspace(msg) => {
                 if let Some(display) = self.workspace_display.as_mut() {
                     display.update(msg);
                 }
             }
-            ApplicationMessage::ClockMessage(msg) => {
+            ApplicationMessage::Clock(msg) => {
                 self.clock.update(msg);
+            }
+            ApplicationMessage::Battery(BatteryMessage::Error) => self.battery_display = None,
+            ApplicationMessage::Battery(msg) => {
+                if let Some(display) = self.battery_display.as_mut() {
+                    display.update(msg);
+                }
             }
         };
         Command::none()
@@ -72,26 +81,46 @@ impl Application for MyWidgets {
 
     fn view(&self) -> Element<Self::Message> {
         let workspace = if let Some(workspace_display) = &self.workspace_display {
-            workspace_display.view().map(ApplicationMessage::WorkspaceMessage)
+            workspace_display.view().map(ApplicationMessage::Workspace)
         } else {
             text("Workspaces aren't working. Check the logs.").into()
         };
 
-        let clock = self.clock.view().map(ApplicationMessage::ClockMessage);
+        let battery = if let Some(bat_display) = &self.battery_display {
+            bat_display.view().map(ApplicationMessage::Battery)
+        } else {
+            text("Battery isn't working. Check the logs.").into()
+        };
 
-        row!(workspace, clock).into()
+        let clock = self.clock.view().map(ApplicationMessage::Clock);
+
+        row!(
+            workspace, 
+            clock, 
+            battery,
+        ).into()
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
         let workspace_subscription = if let Some(workspace_display) = &self.workspace_display {
-            workspace_display.subscription().map(ApplicationMessage::WorkspaceMessage)
+            workspace_display.subscription().map(ApplicationMessage::Workspace)
         } else {
             Subscription::none()
         };
 
-        let clock_subscription = self.clock.subscription().map(ApplicationMessage::ClockMessage);
+        let battery_subscription = if let Some(battery_display) = &self.battery_display {
+            battery_display.subscription().map(ApplicationMessage::Battery)
+        } else {
+            Subscription::none()
+        };
 
-        Subscription::batch([workspace_subscription, clock_subscription])
+        let clock_subscription = self.clock.subscription().map(ApplicationMessage::Clock);
+
+        Subscription::batch([
+            workspace_subscription, 
+            battery_subscription, 
+            clock_subscription,
+        ])
 
     }
 }
