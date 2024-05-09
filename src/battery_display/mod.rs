@@ -1,22 +1,48 @@
-use battery::{
-    errors::Error, units::ratio::percent, Manager, State
-};
+use std::fs::read_to_string;
+
 use iced::{color, widget::{column, container, text, vertical_space, Container}, Element, Length, Padding, Subscription};
+
+const BATTERY_FOLDER: &str = "/sys/class/power_supply/BAT0";
 
 pub struct BatteryDisplay {
     state: State,
     percent_charge: u32,
 }
 
-fn get_state_and_percent() -> Result<(State, u32), Error> {
-    let manager = Manager::new()?;
-    let battery = manager.batteries()?.next().unwrap()?;
+#[derive(Debug, Clone, Copy)]
+pub enum State {
+    Charging,
+    Discharging,
+    Full,
+    Empty,
+    Other,
+}
 
-    let percent_val = battery.state_of_charge().get::<percent>();
+fn query_from_system(what: &str) -> std::io::Result<String> {
+    let path = format!("{}/{}", BATTERY_FOLDER, what);
 
-    let state = battery.state();
+    Ok(read_to_string(path)?
+        .lines()
+        .next()
+        .unwrap()
+        .into())
+}
 
-    Ok((state, percent_val as u32))
+fn get_state_and_percent() -> Result<(State, u32), std::io::Error> {
+    let current_charge: f32 = query_from_system("charge_now")?.parse().unwrap();
+    let full_charge: f32 = query_from_system("charge_full")?.parse().unwrap();
+    let percent_val = ((current_charge / full_charge) * 100.0) as u32;
+
+    let state = match query_from_system("status")?.as_str() {
+        "Charging" => State::Charging,
+        "Discharging" => State::Discharging,
+        "Not charging" => State::Full,
+        "Full" => State::Full,
+        "Empty" => State::Empty,
+        _ => State::Other,
+    };
+
+    Ok((state, percent_val))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -28,10 +54,6 @@ pub enum BatteryMessage {
 impl BatteryDisplay {
     pub fn new() -> Option<Self> {
         match get_state_and_percent() {
-            Ok((State::Unknown, _)) => {
-                log::error!("Unable to get battery information.");
-                None
-            }
             Ok((state, percent_charge)) => {
                 Some(Self {
                     state,
@@ -71,7 +93,7 @@ impl BatteryDisplay {
             State::Discharging => '󰁹',
             State::Empty => '󰂎',
             State::Full => '󰁹',
-            _ => unreachable!(),
+            State::Other => '?',
         }
     }
 
@@ -85,10 +107,6 @@ impl BatteryDisplay {
     pub fn subscription(&self) -> Subscription<BatteryMessage> {
         iced::time::every(std::time::Duration::from_millis(600)).map(|_| {
             match get_state_and_percent() {
-                Ok((State::Unknown, _)) => {
-                    log::error!("Unable to access battery information.");
-                    BatteryMessage::Error
-                }
                 Ok((state, percent_charge)) => BatteryMessage::NewState(state, percent_charge),
                 Err(e) => {
                     log::error!("Unable to access battery information : {}", e);
