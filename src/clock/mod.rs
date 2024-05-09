@@ -1,5 +1,5 @@
 use chrono::{DateTime, Datelike, Local, NaiveDate};
-use iced::{widget::{text, Button}, Element, Subscription};
+use iced::{color, widget::{button, text, Button}, Element, Subscription};
 
 /// The state of the clock widget
 enum State {
@@ -76,8 +76,9 @@ impl Clock {
             State::Date => format_date(self.now.date_naive()),
             State::Time => self.now.time().format("%H:%M").to_string(),
         };
-        Button::new(text(button_text))
+        Button::new(text(button_text).style(iced::Color::WHITE))
             .on_press(ClockMessage::ChangeState)
+            .style(iced::theme::Button::custom(ButtonStyle {}))
             .into()
     }
 }
@@ -85,5 +86,18 @@ impl Clock {
 impl Default for Clock {
     fn default() -> Self {
         Self { now: Local::now(), state: State::Time }
+    }
+}
+
+struct ButtonStyle;
+
+impl button::StyleSheet for ButtonStyle {
+    type Style = iced::Theme;
+
+    fn active(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Background::Color(color!(0x282828))),
+            ..Default::default()
+        }
     }
 }

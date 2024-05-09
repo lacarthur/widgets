@@ -1,10 +1,14 @@
 use iced::{
-    executor, wayland::layer_surface::Anchor, widget::{row, text}, Application, Command, Element, Settings, Subscription, Theme
+    color, executor, wayland::layer_surface::Anchor, widget::{container, horizontal_space, row, text, Container}, Application, Background, Command, Element, Length, Settings, Subscription, Theme
 };
 
 use widgets::{battery_display::{BatteryDisplay, BatteryMessage}, clock::{Clock, ClockMessage}, hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}}};
 
 use log::error;
+
+const HEIGHT: u32 = 30;
+const MARGIN: u32 = 5;
+const SCREEN_WIDTH: u32 = 1366;
 
 #[derive(Debug, Clone)]
 enum ApplicationMessage {
@@ -82,13 +86,17 @@ impl Application for MyWidgets {
             text("Battery isn't working. Check the logs.").into()
         };
 
-        let clock = self.clock.view().map(ApplicationMessage::Clock);
+        let clock = self.clock.view()
+            .map(ApplicationMessage::Clock);
 
+        Container::new(
         row!(
-            workspace, 
-            clock, 
-            battery,
-        ).into()
+            Container::new(workspace).width(Length::FillPortion(1)), 
+            Container::new(row![horizontal_space(Length::Fill), clock, horizontal_space(Length::Fill)]).width(Length::FillPortion(1)), 
+            Container::new(row![horizontal_space(Length::Fill), battery]).width(Length::FillPortion(1)),
+        )).style(iced::theme::Container::Custom(Box::new(MainContainerStyle)))
+            .into()
+
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
@@ -119,6 +127,18 @@ impl Application for MyWidgets {
     }
 }
 
+struct MainContainerStyle;
+
+impl container::StyleSheet for MainContainerStyle {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(Background::Color(color!(0x282828))),
+            ..Default::default()
+        }
+    }
+}
 
 fn main() -> Result<(), iced::Error> {
     env_logger::init();
@@ -126,10 +146,10 @@ fn main() -> Result<(), iced::Error> {
     MyWidgets::run(Settings {
         initial_surface: iced::wayland::InitialSurface::LayerSurface(
             iced::wayland::actions::layer_surface::SctkLayerSurfaceSettings {
-                layer: iced::wayland::layer_surface::Layer::Overlay,
+                layer: iced::wayland::layer_surface::Layer::Background,
                 anchor: Anchor::TOP,
-                size: Some((Some(1356), Some(30))),
-                exclusive_zone: 30,
+                size: Some((Some(SCREEN_WIDTH - 2 * MARGIN), Some(HEIGHT))),
+                exclusive_zone: HEIGHT as i32,
                 ..Default::default()
             }
         ),

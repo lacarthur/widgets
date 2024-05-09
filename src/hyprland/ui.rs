@@ -4,8 +4,7 @@ use super::{
 };
 
 use iced::{
-    Element, Color, widget::{button, Button, text, Row},
-    alignment::Horizontal,
+    alignment::Horizontal, color, widget::{button, text, Button, Row}, Color, Element
 };
 
 use log::error;
@@ -105,7 +104,7 @@ impl WorkspaceDisplay {
             .map(|(id, &window_count)| {
                 let val = format!("{}", id + 1);
                 let style = if window_count == 0 {
-                    Color::BLACK
+                    color!(0x808080)
                 } else {
                     Color::WHITE
                 };
@@ -142,9 +141,7 @@ impl button::StyleSheet for ActiveWorkspaceButtonStyle {
 
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance {
-            shadow_offset: Default::default(),
-            background: Some(iced::Background::Color(Color::new(1.0, 1.0, 0.0, 1.0))),
-            text_color: Color::WHITE,
+            background: Some(iced::Background::Color(color!(0x665c54))),
             ..Default::default()
         }
     }
@@ -155,9 +152,7 @@ impl button::StyleSheet for InactiveWorkspaceButtonStyle {
 
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance {
-            shadow_offset: Default::default(),
-            background: Some(iced::Background::Color(Color::new(0.0, 1.0, 1.0, 1.0))),
-            text_color: Color::WHITE,
+            background: Some(iced::Background::Color(color!(0x282828))),
             ..Default::default()
         }
     }

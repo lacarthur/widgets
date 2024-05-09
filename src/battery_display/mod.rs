@@ -1,7 +1,7 @@
 use battery::{
     errors::Error, units::ratio::percent, Manager, State
 };
-use iced::{widget::text, Element, Subscription};
+use iced::{color, widget::{column, container, text, vertical_space, Container}, Element, Length, Padding, Subscription};
 
 pub struct BatteryDisplay {
     state: State,
@@ -58,6 +58,7 @@ impl BatteryDisplay {
             State::Charging if self.percent_charge <= 90 => '󰂊',
             State::Charging if self.percent_charge <= 99 => '󰂋',
             State::Charging => '󰂅',
+            State::Discharging if self.percent_charge <= 10 => '󰂎',
             State::Discharging if self.percent_charge <= 20 => '󰁺',
             State::Discharging if self.percent_charge <= 30 => '󰁻',
             State::Discharging if self.percent_charge <= 40 => '󰁼',
@@ -82,7 +83,7 @@ impl BatteryDisplay {
     }
 
     pub fn subscription(&self) -> Subscription<BatteryMessage> {
-        iced::time::every(std::time::Duration::from_millis(100)).map(|_| {
+        iced::time::every(std::time::Duration::from_millis(600)).map(|_| {
             match get_state_and_percent() {
                 Ok((State::Unknown, _)) => {
                     log::error!("Unable to access battery information.");
@@ -98,6 +99,29 @@ impl BatteryDisplay {
     }
 
     pub fn view(&self) -> Element<BatteryMessage> {
-        text(format!("{} {}%", self.icon(), self.percent_charge)).into()
+        Container::new(
+            column![
+                vertical_space(Length::Fill),
+                text(format!("{} {}%", self.icon(), self.percent_charge)),
+                vertical_space(Length::Fill),
+            ]
+        ).padding(Padding::from([0, 5, 0, 5]))
+            .style(iced::theme::Container::Custom(Box::new(ContainerStyle {})))
+            .into()
     }
+}
+
+struct ContainerStyle;
+
+impl container::StyleSheet for ContainerStyle {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            text_color: Some(iced::Color::WHITE),
+            background: Some(iced::Background::Color(color!(0x282828))),
+            ..Default::default()
+        }
+    }
+
 }
