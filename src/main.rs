@@ -6,7 +6,7 @@ use widgets::{battery_display::{BatteryDisplay, BatteryMessage}, clock::{Clock, 
 
 use log::error;
 
-const HEIGHT: u32 = 30;
+const HEIGHT: u32 = 25;
 const MARGIN: u32 = 5;
 const SCREEN_WIDTH: u32 = 1366;
 
@@ -153,6 +153,9 @@ fn main() -> Result<(), iced::Error> {
                 ..Default::default()
             }
         ),
+        default_text_size: iced::Pixels(17.0),
+        fonts: vec![include_bytes!("/home/arthur/.local/share/fonts/fantasque-sans-mono-nerd-font/Fantasque Sans Mono Regular Nerd Font Complete.ttf").into()],
+        default_font: iced::Font { family: iced::font::Family::Name("FantasqueSansMono Nerd Font"), ..Default::default() },
         ..Default::default()
     })
 }

@@ -29,9 +29,7 @@ fn query_from_system(what: &str) -> std::io::Result<String> {
 }
 
 fn get_state_and_percent() -> Result<(State, u32), std::io::Error> {
-    let current_charge: f32 = query_from_system("charge_now")?.parse().unwrap();
-    let full_charge: f32 = query_from_system("charge_full")?.parse().unwrap();
-    let percent_val = ((current_charge / full_charge) * 100.0) as u32;
+    let percent_val = query_from_system("capacity")?.parse().unwrap();
 
     let state = match query_from_system("status")?.as_str() {
         "Charging" => State::Charging,

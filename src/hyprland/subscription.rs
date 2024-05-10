@@ -82,7 +82,7 @@ pub fn connect_to_socket() -> Subscription<HyprlandWorkspaceEvent> {
                             let e = HyprlandCommunicationError::SocketConnectionError { socket_path, error };
                             log::error!("{}", e);
                             (
-                                HyprlandWorkspaceEvent::Noop,
+                                HyprlandWorkspaceEvent::Error,
                                 SubscriptionState::Error,
                             )
                         }
@@ -94,7 +94,7 @@ pub fn connect_to_socket() -> Subscription<HyprlandWorkspaceEvent> {
                             Ok(Some(command)) => return (command, SubscriptionState::Ongoing { reader }),
                             Err(e) => {
                                 log::error!("{}", e);
-                                return (HyprlandWorkspaceEvent::Noop, SubscriptionState::Error)
+                                return (HyprlandWorkspaceEvent::Error, SubscriptionState::Error)
                             }
                             _ => ()
                         }

@@ -79,6 +79,7 @@ impl Clock {
         Button::new(text(button_text).style(iced::Color::WHITE))
             .on_press(ClockMessage::ChangeState)
             .style(iced::theme::Button::custom(ButtonStyle {}))
+            .padding(iced::Padding::from(0))
             .into()
     }
 }

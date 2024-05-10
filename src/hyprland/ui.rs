@@ -4,7 +4,7 @@ use super::{
 };
 
 use iced::{
-    alignment::Horizontal, color, widget::{button, text, Button, Row}, Color, Element
+    alignment::Horizontal, color, widget::{button, text, Button, Row}, Border, Color, Element, Length, Padding, Radius
 };
 
 use log::error;
@@ -84,7 +84,7 @@ impl WorkspaceDisplay {
                 self.active_workspace = new_workspace_id;
             }
             WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Error) => {
-                // TODO : switch to error mode or sth
+                // this is handled above, and so it is a noop here
             }
             WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Noop) => (),
             WorkspaceDisplayMessage::WorkspaceButtonClicked(id) => {
@@ -121,6 +121,9 @@ impl WorkspaceDisplay {
                 } else {
                     iced::theme::Button::custom(InactiveWorkspaceButtonStyle {})
                 })
+                .padding(Padding::from(0))
+                .width(Length::Fixed(25.0))
+                
                 .into()
             })
             .collect::<Vec<Element<_>>>();
@@ -142,6 +145,11 @@ impl button::StyleSheet for ActiveWorkspaceButtonStyle {
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance {
             background: Some(iced::Background::Color(color!(0x665c54))),
+            border: Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: Radius::from(5.0),
+            },
             ..Default::default()
         }
     }
@@ -153,6 +161,11 @@ impl button::StyleSheet for InactiveWorkspaceButtonStyle {
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance {
             background: Some(iced::Background::Color(color!(0x282828))),
+            border: Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: Radius::from(5.0),
+            },
             ..Default::default()
         }
     }
