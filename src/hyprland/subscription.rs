@@ -4,7 +4,7 @@ use tokio::io::BufReader;
 use tokio::io::Lines;
 use tokio::net::UnixStream;
 
-use crate::hyprland::HYPRLAND_INSTANCE_SIG_VAR;
+use crate::hyprland::get_hyprland_socket_address;
 
 use super::HyprlandCommunicationError;
 
@@ -62,11 +62,13 @@ pub fn connect_to_socket() -> Subscription<HyprlandWorkspaceEvent> {
         move |state| async move {
             match state {
                 SubscriptionState::Starting => {
-                    let hyprland_instance_signature = std::env::var(HYPRLAND_INSTANCE_SIG_VAR)
-                        .map_err(|error| HyprlandCommunicationError::EnvError { var: HYPRLAND_INSTANCE_SIG_VAR.into(), error })
-                        .unwrap();
-                    let socket_path =
-                        format!("/tmp/hypr/{}/.socket2.sock", hyprland_instance_signature);
+                    let socket_path = match get_hyprland_socket_address() {
+                        Ok(path) => path,
+                        Err(e) => {
+                            log::error!("{}", e);
+                            return (HyprlandWorkspaceEvent::Error, SubscriptionState::Error);
+                        }
+                    };
                     match UnixStream::connect(&socket_path).await {
                         Ok(stream) => {
                             let reader = BufReader::new(stream).lines();

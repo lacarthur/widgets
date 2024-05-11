@@ -2,11 +2,25 @@ pub mod subscription;
 pub mod ui;
 
 use serde::Deserialize;
-use std::{collections::HashMap, env::VarError, fmt::Display};
+use std::{collections::HashMap, env::VarError, fmt::Display, path::PathBuf};
 
 // I am not dealing with dynamic workspaces.
 pub const NUM_WORKSPACES: usize = 10;
 pub const HYPRLAND_INSTANCE_SIG_VAR: &str = "HYPRLAND_INSTANCE_SIGNATURE";
+
+pub fn get_hyprland_socket_address() -> Result<PathBuf, HyprlandCommunicationError> {
+    let base_directories = xdg::BaseDirectories::new()
+        .map_err(HyprlandCommunicationError::RuntimeDirectoryError)?;
+    let mut directory = base_directories
+        .get_runtime_directory()
+        .map_err(HyprlandCommunicationError::RuntimeDirectoryError)?
+        .to_path_buf();
+    directory.push("hypr");
+    directory.push(std::env::var(HYPRLAND_INSTANCE_SIG_VAR).map_err(|e| HyprlandCommunicationError::EnvError { var: HYPRLAND_INSTANCE_SIG_VAR.into(), error: e })?);
+    directory.push(".socket2.sock");
+
+    Ok(directory)
+}
 
 #[derive(Deserialize, Debug)]
 struct WorkspaceDeserialized {
@@ -22,11 +36,12 @@ struct HyprlandClientDeserialized {
 #[derive(Debug)]
 pub enum HyprlandCommunicationError {
     IoError { command: String, error: std::io::Error },
+    RuntimeDirectoryError(xdg::BaseDirectoriesError),
     DeserializationError { command: String, raw: String, error: serde_json::Error },
     HexadecimalMissingPrefix { command: String, address: String },
     WindowAddressParsingError { command: String, address: String, error: std::num::ParseIntError },
     HyprctlFailure { command: String, exit_status: std::process::ExitStatus },
-    SocketConnectionError { socket_path: String, error: std::io::Error },
+    SocketConnectionError { socket_path: PathBuf, error: std::io::Error },
     EventParsingError { event: String },
     EventArgsParsingError { event: String, args: String },
     RequestInexistantWindow { requested_address: u64, addresses_in_memory: Vec<u64> },
@@ -65,7 +80,7 @@ impl Display for HyprlandCommunicationError {
                 writeln!(f, "Received ExitStatus : {}", exit_status)
             }
             Self::SocketConnectionError { socket_path, error } => {
-                writeln!(f, "Error while attempting to connect to socket at address {}", socket_path)?;
+                writeln!(f, "Error while attempting to connect to socket at address {}", socket_path.to_str().unwrap())?;
                 write!(f, "Received error '{}'", error)
             }
             Self::EventParsingError { event } => {
@@ -90,6 +105,9 @@ impl Display for HyprlandCommunicationError {
             Self::EnvError { var, error } => {
                 writeln!(f, "Error accessing environment variable : {}", var)?;
                 write!(f, "Got error {}", error)
+            }
+            Self::RuntimeDirectoryError(e) => {
+                writeln!(f, "Unable to access runtime directory : {}", e)
             }
         }
     }
@@ -126,7 +144,7 @@ pub fn get_windows() -> Result<(HashMap<u64, usize>, [u32; NUM_WORKSPACES]), Hyp
         let address = client.address.strip_prefix("0x")
             .ok_or(HyprlandCommunicationError::HexadecimalMissingPrefix { 
                 command: command.into(), 
-                address: client.address.clone().into() 
+                address: client.address.clone(), 
             })?;
         let address = u64::from_str_radix(address, 16)
             .map_err(|error| HyprlandCommunicationError::WindowAddressParsingError { 
