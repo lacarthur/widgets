@@ -1,10 +1,14 @@
-use std::collections::HashMap;
 use super::{
-    get_active_workspace, get_windows, subscription::HyprlandWorkspaceEvent, switch_to_workspace, HyprlandCommunicationError, NUM_WORKSPACES
+    get_active_workspace, get_windows, subscription::HyprlandWorkspaceEvent, switch_to_workspace,
+    HyprlandCommunicationError, NUM_WORKSPACES,
 };
+use std::collections::HashMap;
 
 use iced::{
-    alignment::Horizontal, color, widget::{button, text, Button, Row}, Border, Color, Element, Length, Padding, Radius
+    alignment::Horizontal,
+    color,
+    widget::{button, text, Button, Row},
+    Border, Color, Element, Length, Padding, Radius,
 };
 
 use log::error;
@@ -48,9 +52,9 @@ impl WorkspaceDisplay {
                         self.window_count[previous_workspace] -= 1;
                     }
                     None => {
-                        let e = HyprlandCommunicationError::RequestInexistantWindow { 
-                            requested_address: window_address, 
-                            addresses_in_memory: self.windows.keys().copied().collect() 
+                        let e = HyprlandCommunicationError::RequestInexistantWindow {
+                            requested_address: window_address,
+                            addresses_in_memory: self.windows.keys().copied().collect(),
                         };
                         log::error!("{}", e);
                         // TODO switch to error mode or sth
@@ -66,21 +70,19 @@ impl WorkspaceDisplay {
             }
             WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::CloseWindow {
                 window_address,
-            }) => {
-                match self.windows.remove(&window_address) {
-                    Some(workspace_id) => self.window_count[workspace_id] -= 1,
-                    None => {
-                        let e = HyprlandCommunicationError::RequestInexistantWindow { 
-                            requested_address: window_address, 
-                            addresses_in_memory: self.windows.keys().copied().collect() 
-                        };
-                        log::error!("{}", e);
-                    }
+            }) => match self.windows.remove(&window_address) {
+                Some(workspace_id) => self.window_count[workspace_id] -= 1,
+                None => {
+                    let e = HyprlandCommunicationError::RequestInexistantWindow {
+                        requested_address: window_address,
+                        addresses_in_memory: self.windows.keys().copied().collect(),
+                    };
+                    log::error!("{}", e);
                 }
-            }
-            WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::ChangeActiveWorkspace {
-                new_workspace_id,
-            }) => {
+            },
+            WorkspaceDisplayMessage::EventReceived(
+                HyprlandWorkspaceEvent::ChangeActiveWorkspace { new_workspace_id },
+            ) => {
                 self.active_workspace = new_workspace_id;
             }
             WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Error) => {
@@ -92,7 +94,7 @@ impl WorkspaceDisplay {
                     error!("{}", e);
                     std::process::abort();
                 }
-            },
+            }
         }
     }
 
@@ -123,16 +125,16 @@ impl WorkspaceDisplay {
                 })
                 .padding(Padding::from(0))
                 .width(Length::Fixed(25.0))
-                
                 .into()
             })
             .collect::<Vec<Element<_>>>();
 
         Row::with_children(buttons).into()
     }
-    
+
     pub fn subscription(&self) -> iced::Subscription<WorkspaceDisplayMessage> {
-        crate::hyprland::subscription::connect_to_socket().map(WorkspaceDisplayMessage::EventReceived)
+        crate::hyprland::subscription::connect_to_socket()
+            .map(WorkspaceDisplayMessage::EventReceived)
     }
 }
 

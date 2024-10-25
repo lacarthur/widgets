@@ -1,5 +1,9 @@
 use chrono::{DateTime, Datelike, Local, NaiveDate};
-use iced::{color, widget::{button, text, Button}, Element, Subscription};
+use iced::{
+    color,
+    widget::{button, text, Button},
+    Element, Subscription,
+};
 
 /// The state of the clock widget
 enum State {
@@ -31,7 +35,7 @@ fn format_date(date: NaiveDate) -> String {
         chrono::Weekday::Sun => "Dimanche",
     };
 
-    let month =  match date.month0() {
+    let month = match date.month0() {
         0 => "janvier",
         1 => "février",
         2 => "mars",
@@ -54,21 +58,16 @@ impl Clock {
     pub fn update(&mut self, message: ClockMessage) {
         match message {
             ClockMessage::Tick(new_time) => self.now = new_time,
-            ClockMessage::ChangeState => {
-                match self.state {
-                    State::Date => self.state = State::Time,
-                    State::Time => self.state = State::Date,
-                }
-            }
+            ClockMessage::ChangeState => match self.state {
+                State::Date => self.state = State::Time,
+                State::Time => self.state = State::Date,
+            },
         }
     }
 
     pub fn subscription(&self) -> Subscription<ClockMessage> {
-        iced::time::every(std::time::Duration::from_millis(500)).map(|_| {
-            ClockMessage::Tick(
-                Local::now()
-            )
-        })
+        iced::time::every(std::time::Duration::from_millis(500))
+            .map(|_| ClockMessage::Tick(Local::now()))
     }
 
     pub fn view(&self) -> Element<ClockMessage> {
@@ -86,7 +85,10 @@ impl Clock {
 
 impl Default for Clock {
     fn default() -> Self {
-        Self { now: Local::now(), state: State::Time }
+        Self {
+            now: Local::now(),
+            state: State::Time,
+        }
     }
 }
 

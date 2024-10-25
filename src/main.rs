@@ -1,8 +1,18 @@
 use iced::{
-    color, executor, wayland::layer_surface::Anchor, widget::{container, horizontal_space, row, text, Container}, Application, Background, Command, Element, Length, Settings, Subscription, Theme
+    color, executor,
+    wayland::layer_surface::Anchor,
+    widget::{container, horizontal_space, row, text, Container},
+    Application, Background, Command, Element, Length, Settings, Subscription, Theme,
 };
 
-use widgets::{battery_display::{BatteryDisplay, BatteryMessage}, clock::{Clock, ClockMessage}, hyprland::{subscription::HyprlandWorkspaceEvent, ui::{WorkspaceDisplay, WorkspaceDisplayMessage}}};
+use widgets::{
+    battery_display::{BatteryDisplay, BatteryMessage},
+    clock::{Clock, ClockMessage},
+    hyprland::{
+        subscription::HyprlandWorkspaceEvent,
+        ui::{WorkspaceDisplay, WorkspaceDisplayMessage},
+    },
+};
 
 use log::error;
 
@@ -39,7 +49,6 @@ impl Application for MyWidgets {
             Ok(workspace_display) => Some(workspace_display),
         };
 
-    
         (
             Self {
                 workspace_display,
@@ -52,7 +61,9 @@ impl Application for MyWidgets {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            ApplicationMessage::Workspace(WorkspaceDisplayMessage::EventReceived(HyprlandWorkspaceEvent::Error)) => {
+            ApplicationMessage::Workspace(WorkspaceDisplayMessage::EventReceived(
+                HyprlandWorkspaceEvent::Error,
+            )) => {
                 self.workspace_display = None;
             }
             ApplicationMessage::Workspace(msg) => {
@@ -86,28 +97,36 @@ impl Application for MyWidgets {
             text("Battery isn't working. Check the logs.").into()
         };
 
-        let clock = self.clock.view()
-            .map(ApplicationMessage::Clock);
+        let clock = self.clock.view().map(ApplicationMessage::Clock);
 
-        Container::new(
-        row!(
-            Container::new(workspace).width(Length::FillPortion(1)), 
-            Container::new(row![horizontal_space(Length::Fill), clock, horizontal_space(Length::Fill)]).width(Length::FillPortion(1)), 
-            Container::new(row![horizontal_space(Length::Fill), battery]).width(Length::FillPortion(1)),
-        )).style(iced::theme::Container::Custom(Box::new(MainContainerStyle)))
-            .into()
-
+        Container::new(row!(
+            Container::new(workspace).width(Length::FillPortion(1)),
+            Container::new(row![
+                horizontal_space(Length::Fill),
+                clock,
+                horizontal_space(Length::Fill)
+            ])
+            .width(Length::FillPortion(1)),
+            Container::new(row![horizontal_space(Length::Fill), battery])
+                .width(Length::FillPortion(1)),
+        ))
+        .style(iced::theme::Container::Custom(Box::new(MainContainerStyle)))
+        .into()
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
         let workspace_subscription = if let Some(workspace_display) = &self.workspace_display {
-            workspace_display.subscription().map(ApplicationMessage::Workspace)
+            workspace_display
+                .subscription()
+                .map(ApplicationMessage::Workspace)
         } else {
             Subscription::none()
         };
 
         let battery_subscription = if let Some(battery_display) = &self.battery_display {
-            battery_display.subscription().map(ApplicationMessage::Battery)
+            battery_display
+                .subscription()
+                .map(ApplicationMessage::Battery)
         } else {
             Subscription::none()
         };
@@ -115,11 +134,10 @@ impl Application for MyWidgets {
         let clock_subscription = self.clock.subscription().map(ApplicationMessage::Clock);
 
         Subscription::batch([
-            workspace_subscription, 
-            battery_subscription, 
+            workspace_subscription,
+            battery_subscription,
             clock_subscription,
         ])
-
     }
 
     fn title(&self, _id: iced::window::Id) -> String {

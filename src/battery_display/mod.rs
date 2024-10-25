@@ -1,6 +1,10 @@
 use std::fs::read_to_string;
 
-use iced::{color, widget::{column, container, text, vertical_space, Container}, Element, Length, Padding, Subscription};
+use iced::{
+    color,
+    widget::{column, container, text, vertical_space, Container},
+    Element, Length, Padding, Subscription,
+};
 
 const BATTERY_FOLDER: &str = "/sys/class/power_supply/BAT0";
 
@@ -21,11 +25,7 @@ pub enum State {
 fn query_from_system(what: &str) -> std::io::Result<String> {
     let path = format!("{}/{}", BATTERY_FOLDER, what);
 
-    Ok(read_to_string(path)?
-        .lines()
-        .next()
-        .unwrap()
-        .into())
+    Ok(read_to_string(path)?.lines().next().unwrap().into())
 }
 
 fn get_state_and_percent() -> Result<(State, u32), std::io::Error> {
@@ -52,12 +52,10 @@ pub enum BatteryMessage {
 impl BatteryDisplay {
     pub fn new() -> Option<Self> {
         match get_state_and_percent() {
-            Ok((state, percent_charge)) => {
-                Some(Self {
-                    state,
-                    percent_charge,
-                })
-            }
+            Ok((state, percent_charge)) => Some(Self {
+                state,
+                percent_charge,
+            }),
             Err(e) => {
                 log::error!("Unable to get battery information: {}", e);
                 None
@@ -66,7 +64,7 @@ impl BatteryDisplay {
     }
 
     fn icon(&self) -> char {
-        match self.state{
+        match self.state {
             State::Charging if self.percent_charge <= 10 => '󰢟',
             State::Charging if self.percent_charge <= 20 => '󰢜',
             State::Charging if self.percent_charge <= 30 => '󰂆',
@@ -96,34 +94,33 @@ impl BatteryDisplay {
     }
 
     pub fn update(&mut self, message: BatteryMessage) {
-        if let BatteryMessage::NewState(state,percent_charge) = message {
+        if let BatteryMessage::NewState(state, percent_charge) = message {
             self.state = state;
             self.percent_charge = percent_charge;
         }
     }
 
     pub fn subscription(&self) -> Subscription<BatteryMessage> {
-        iced::time::every(std::time::Duration::from_millis(600)).map(|_| {
-            match get_state_and_percent() {
+        iced::time::every(std::time::Duration::from_millis(600)).map(
+            |_| match get_state_and_percent() {
                 Ok((state, percent_charge)) => BatteryMessage::NewState(state, percent_charge),
                 Err(e) => {
                     log::error!("Unable to access battery information : {}", e);
                     BatteryMessage::Error
                 }
-            }
-        })
+            },
+        )
     }
 
     pub fn view(&self) -> Element<BatteryMessage> {
-        Container::new(
-            column![
-                vertical_space(Length::Fill),
-                text(format!("{} {}%", self.icon(), self.percent_charge)),
-                vertical_space(Length::Fill),
-            ]
-        ).padding(Padding::from([0, 5, 0, 5]))
-            .style(iced::theme::Container::Custom(Box::new(ContainerStyle {})))
-            .into()
+        Container::new(column![
+            vertical_space(Length::Fill),
+            text(format!("{} {}%", self.icon(), self.percent_charge)),
+            vertical_space(Length::Fill),
+        ])
+        .padding(Padding::from([0, 5, 0, 5]))
+        .style(iced::theme::Container::Custom(Box::new(ContainerStyle {})))
+        .into()
     }
 }
 
@@ -139,5 +136,4 @@ impl container::StyleSheet for ContainerStyle {
             ..Default::default()
         }
     }
-
 }

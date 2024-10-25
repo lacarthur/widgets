@@ -81,31 +81,31 @@ pub fn connect_to_socket() -> Subscription<HyprlandWorkspaceEvent> {
                             )
                         }
                         Err(error) => {
-                            let e = HyprlandCommunicationError::SocketConnectionError { socket_path, error };
+                            let e = HyprlandCommunicationError::SocketConnectionError {
+                                socket_path,
+                                error,
+                            };
                             log::error!("{}", e);
-                            (
-                                HyprlandWorkspaceEvent::Error,
-                                SubscriptionState::Error,
-                            )
+                            (HyprlandWorkspaceEvent::Error, SubscriptionState::Error)
                         }
                     }
                 }
                 SubscriptionState::Ongoing { mut reader } => {
                     while let Some(line) = reader.next_line().await.unwrap() {
                         match parse_hyprland_event(&line) {
-                            Ok(Some(command)) => return (command, SubscriptionState::Ongoing { reader }),
+                            Ok(Some(command)) => {
+                                return (command, SubscriptionState::Ongoing { reader })
+                            }
                             Err(e) => {
                                 log::error!("{}", e);
-                                return (HyprlandWorkspaceEvent::Error, SubscriptionState::Error)
+                                return (HyprlandWorkspaceEvent::Error, SubscriptionState::Error);
                             }
-                            _ => ()
+                            _ => (),
                         }
                     }
                     unreachable!();
-                },
-                SubscriptionState::Error => {
-                    iced::futures::future::pending().await
                 }
+                SubscriptionState::Error => iced::futures::future::pending().await,
             }
         },
     )
@@ -116,45 +116,95 @@ pub fn connect_to_socket() -> Subscription<HyprlandWorkspaceEvent> {
 /// has been fullscreened), it just sends back None. We do this rather than
 /// `HyprlandWorkspaceEvent::Noop` because a `Noop` would get sent, and it doesn't need to.
 /// TODO : parse better. use nom?
-fn parse_hyprland_event(line: &str) -> Result<Option<HyprlandWorkspaceEvent>, HyprlandCommunicationError> {
+fn parse_hyprland_event(
+    line: &str,
+) -> Result<Option<HyprlandWorkspaceEvent>, HyprlandCommunicationError> {
     let mut line_split = line.split(">>");
-    let command = line_split.next().ok_or(HyprlandCommunicationError::EventParsingError { event: line.into() })?;
+    let command = line_split
+        .next()
+        .ok_or(HyprlandCommunicationError::EventParsingError { event: line.into() })?;
     let args = line_split.next().unwrap_or_default();
     let mut split_args = args.split(',');
 
     match command {
         "workspace" => {
-            let workspace_id = split_args.next().ok_or(HyprlandCommunicationError::EventArgsParsingError { event: line.into(), args: args.into() })?;
+            let workspace_id =
+                split_args
+                    .next()
+                    .ok_or(HyprlandCommunicationError::EventArgsParsingError {
+                        event: line.into(),
+                        args: args.into(),
+                    })?;
             Ok(Some(HyprlandWorkspaceEvent::ChangeActiveWorkspace {
                 new_workspace_id: workspace_name_to_id(workspace_id),
             }))
         }
         "openwindow" => {
-            let address_str = split_args.next()
-                .ok_or(HyprlandCommunicationError::EventArgsParsingError { event: line.into(), args: args.into() })?;
-            let workspace_id = split_args.next()
-                .ok_or(HyprlandCommunicationError::EventArgsParsingError { event: line.into(), args: args.into() })?;
-            let window_address = u64::from_str_radix(address_str, 16)
-                .map_err(|error| HyprlandCommunicationError::WindowAddressParsingError { command: line.into(), address: address_str.into(), error})?;
+            let address_str =
+                split_args
+                    .next()
+                    .ok_or(HyprlandCommunicationError::EventArgsParsingError {
+                        event: line.into(),
+                        args: args.into(),
+                    })?;
+            let workspace_id =
+                split_args
+                    .next()
+                    .ok_or(HyprlandCommunicationError::EventArgsParsingError {
+                        event: line.into(),
+                        args: args.into(),
+                    })?;
+            let window_address = u64::from_str_radix(address_str, 16).map_err(|error| {
+                HyprlandCommunicationError::WindowAddressParsingError {
+                    command: line.into(),
+                    address: address_str.into(),
+                    error,
+                }
+            })?;
             Ok(Some(HyprlandWorkspaceEvent::OpenWindow {
                 window_address,
                 workspace_id: workspace_name_to_id(workspace_id),
             }))
         }
         "closewindow" => {
-            let address_str = split_args.next()
-                .ok_or(HyprlandCommunicationError::EventArgsParsingError { event: line.into(), args: args.into() })?;
-            let window_address = u64::from_str_radix(address_str, 16)
-                .map_err(|error| HyprlandCommunicationError::WindowAddressParsingError { command: line.into(), address: address_str.into(), error})?;
+            let address_str =
+                split_args
+                    .next()
+                    .ok_or(HyprlandCommunicationError::EventArgsParsingError {
+                        event: line.into(),
+                        args: args.into(),
+                    })?;
+            let window_address = u64::from_str_radix(address_str, 16).map_err(|error| {
+                HyprlandCommunicationError::WindowAddressParsingError {
+                    command: line.into(),
+                    address: address_str.into(),
+                    error,
+                }
+            })?;
             Ok(Some(HyprlandWorkspaceEvent::CloseWindow { window_address }))
         }
         "movewindow" => {
-            let address_str = split_args.next()
-                .ok_or(HyprlandCommunicationError::EventArgsParsingError { event: line.into(), args: args.into() })?;
-            let window_address = u64::from_str_radix(address_str, 16)
-                .map_err(|error| HyprlandCommunicationError::WindowAddressParsingError { command: line.into(), address: address_str.into(), error})?;
-            let workspace_id = split_args.next()
-                .ok_or(HyprlandCommunicationError::EventArgsParsingError { event: line.into(), args: args.into() })?;
+            let address_str =
+                split_args
+                    .next()
+                    .ok_or(HyprlandCommunicationError::EventArgsParsingError {
+                        event: line.into(),
+                        args: args.into(),
+                    })?;
+            let window_address = u64::from_str_radix(address_str, 16).map_err(|error| {
+                HyprlandCommunicationError::WindowAddressParsingError {
+                    command: line.into(),
+                    address: address_str.into(),
+                    error,
+                }
+            })?;
+            let workspace_id =
+                split_args
+                    .next()
+                    .ok_or(HyprlandCommunicationError::EventArgsParsingError {
+                        event: line.into(),
+                        args: args.into(),
+                    })?;
             Ok(Some(HyprlandWorkspaceEvent::MoveWindow {
                 window_address,
                 new_workspace_id: workspace_name_to_id(workspace_id),
